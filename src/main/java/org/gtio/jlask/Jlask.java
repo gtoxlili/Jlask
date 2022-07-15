@@ -131,6 +131,12 @@ public class Jlask {
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
+            } finally {
+                try {
+                    serverSocket.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }).start();
     }
@@ -148,14 +154,6 @@ public class Jlask {
             writer.println(res.getBody());
         } else {
             out.write(res.getBinaryBody());
-        }
-    }
-
-    public void stop() {
-        try {
-            serverSocket.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 }
