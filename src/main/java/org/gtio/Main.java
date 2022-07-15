@@ -14,7 +14,7 @@ import java.util.ArrayList;
 public class Main {
 
     public static void main(String[] args) throws IOException {
-        Jlask jlask = new Jlask("127.0.0.1", 8080, 16, new Main());
+        Jlask jlask = new Jlask("127.0.0.1", 8080, new Main());
         jlask.start();
     }
 

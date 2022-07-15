@@ -151,7 +151,8 @@ public class Jlask {
 
         writer.println();
         if (res.getBody() != null) {
-            writer.println(res.getBody());
+            writer.print(res.getBody());
+            writer.flush();
         } else {
             out.write(res.getBinaryBody());
         }
