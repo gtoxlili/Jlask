@@ -18,6 +18,14 @@ public class Main {
         jlask.start();
     }
 
+    @AssetsPath
+    public String assets = "/assets";
+
+    @Route(url = "/web")
+    public Response web(Request req) throws IOException {
+        return Response.RenderTemplate("/index.html");
+    }
+
     @Route(url = "/")
     public Response index(Request req) {
         return new Response("<h1>Welcome to Jlask Server</h1>");
@@ -77,8 +85,8 @@ public class Main {
     }
 
     // 可通过 method 来指定请求方法，如果没有指定，默认为 GET
-    @Route(url = "/allmethod", method = {"GET", "POST"})
-    public Response allmethod(Request req) {
+    @Route(url = "/allMethod", method = {"GET", "POST"})
+    public Response allMethod(Request req) {
         return new Response("<h1>这是一个可GET可POST的请求</h1>");
     }
 

@@ -1,16 +1,24 @@
 package org.gtio.jlask;
 
+import org.apache.tika.Tika;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class Response {
     private final Map<String, String> headers = new HashMap<>();
     public boolean isBinarybody = false;
-    private int status = 200;
-    private String body;
+    private static final Tika tika = new Tika();
+    protected int status = 200;
     private byte[] binaryBody;
+    protected String body;
 
     public Response(byte[] body, String contentType, boolean isAttachmen, String filename) {
         this.binaryBody = body;
@@ -96,25 +104,47 @@ public class Response {
     }
 
     public static Response ErrorStatus(ErrorType status) {
-        switch (status) {
-            case Err_400:
-                return BadRequest();
-            case Err_403:
-                return Forbidden();
-            case Err_404:
-                return NotFound();
-            case Err_501:
-                return NotImplemented();
-            case Err_500:
-            default:
-                return InternalServerError();
-        }
+        return switch (status) {
+            case Err_400 -> BadRequest();
+            case Err_403 -> Forbidden();
+            case Err_404 -> NotFound();
+            case Err_501 -> NotImplemented();
+            case Err_500 -> InternalServerError();
+        };
     }
 
     public static Response ErrorStatus(int status, String body) {
         Response response = new Response(body);
         response.status = status;
         return response;
+    }
+
+    public static Response RenderTemplate(String template) throws IOException {
+        InputStream url = Response.class.getResourceAsStream(template);
+
+        if (url == null) {
+            return NotFound();
+        }
+
+        String mineType = tika.detect(template);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(url, StandardCharsets.ISO_8859_1));
+
+        ArrayList<Byte> arrBytes = new ArrayList<>();
+
+        while (true) {
+            int c = reader.read();
+            if (c == -1) {
+                break;
+            }
+            arrBytes.add((byte) c);
+        }
+        byte[] bytes = new byte[arrBytes.size()];
+        for (int i = 0; i < arrBytes.size(); i++) {
+            bytes[i] = arrBytes.get(i);
+        }
+        reader.close();
+
+        return new Response(bytes, mineType);
     }
 
     public String getVersion() {

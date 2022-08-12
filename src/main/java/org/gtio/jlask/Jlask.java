@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -25,6 +26,7 @@ public class Jlask {
     private final Map<Integer, Handler> handlers = new HashMap<>();
     private final Map<Integer, Handler> errorHandlers = new HashMap<>();
     private int PoolSize = Runtime.getRuntime().availableProcessors() * 2 + 1;
+    private String assetsPath;
 
     public Jlask(String ip, int port, int poolSize, Object instanceObject) throws IOException {
         serverSocket = new ServerSocket(port, poolSize * 4, InetAddress.getByName(ip));
@@ -62,6 +64,17 @@ public class Jlask {
                 registerErrorHandler(errorHandler.value(), clazz, instanceObject);
             }
         }
+        for (Field field : instanceObject.getClass().getFields()) {
+            AssetsPath assetsPath = field.getAnnotation(AssetsPath.class);
+            if (assetsPath != null) {
+                try {
+                    this.assetsPath = (String) field.get(instanceObject);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+                break;
+            }
+        }
     }
 
     private void registerHandler(String target, String reqType, Method method, Object instanceObject) {
@@ -97,6 +110,8 @@ public class Jlask {
                                 // 如果请求的路径不存在，则返回404错误
                                 if (handlers.containsKey(urlMethodHash)) {
                                     res = handlers.get(urlMethodHash).handle(req);
+                                } else if (assetsPath != null && req.getUrl().startsWith(assetsPath)) {
+                                    res = Response.RenderTemplate(req.getUrl());
                                 } else {
                                     if (errorHandlers.containsKey(404)) {
                                         res = errorHandlers.get(404).handle(req);
@@ -119,9 +134,12 @@ public class Jlask {
                                 System.out.println(" " + req.getMethod() + " " + req.getUrlParams() + " " + res.getVersion() + " " + res.getStatus() + " " + time + " ms");
 
                             } catch (Exception e) {
+                                e.printStackTrace();
                                 writerResponse(Response.ErrorStatus(ErrorType.Err_500), out);
                             } finally {
                                 socket.close();
+                                // 目前占用的内存
+                                System.out.println(" * Memory: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024 + " MB / " + Runtime.getRuntime().totalMemory() / 1024 / 1024 + " MB");
                             }
 
                         } catch (IOException e) {
@@ -130,12 +148,12 @@ public class Jlask {
                     });
                 }
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                e.printStackTrace();
             } finally {
                 try {
                     serverSocket.close();
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    e.printStackTrace();
                 }
             }
         }).start();
